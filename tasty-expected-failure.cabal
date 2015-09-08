@@ -27,11 +27,13 @@ category:            Testing
 build-type:          Simple
 extra-source-files:  README.md
 cabal-version:       >=1.10
+tested-with: GHC == 7.4.2, GHC == 7.6.3, GHC == 7.8.4, GHC == 7.11.*
 
 library
   exposed-modules:
     Test.Tasty.ExpectedFailure
   build-depends:
     base >= 4.7 && <4.8,
+    tagged >= 0.7 && < 0.8,
     tasty >= 0.11
   default-language:    Haskell2010
