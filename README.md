@@ -7,15 +7,15 @@ What is this?
 With the function `expectFail` in the provided module
 `ExpectedFailure`, you can mark that you expect test cases to fail,
 and not to pass.
-.
+
 This can for example be used for test-driven development: Create the tests,
 mark them with `expectFail`, and you can still push
-to the main branch, without your coninuous integration branch failing.
-.
+to the main branch, without your continuous integration branch failing.
+
 Once someone implements the feature or fixes the bug (maybe unknowingly), the
 test suite will tell him so, due to the now unexpectedly passing test, and he
 can remove the `expectFail` marker.
-.
+
 The module also provides `ignoreTest` to avoid
 running a test. Both funtions are implemented via the more general
 `warpTest`, which is also provided.
