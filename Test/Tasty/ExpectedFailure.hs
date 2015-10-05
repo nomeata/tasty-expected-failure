@@ -1,5 +1,10 @@
 {-# LANGUAGE DeriveDataTypeable, ScopedTypeVariables #-}
-module Test.Tasty.ExpectedFailure (expectFail, ignoreTest, wrapTest) where
+module Test.Tasty.ExpectedFailure
+  ( expectFail
+  , allowFail
+  , ignoreTest
+  , wrapTest
+  ) where
 
 import Test.Tasty.Options
 import Test.Tasty.Runners
@@ -27,7 +32,7 @@ wrapTest wrap = go
     go (AskOptions f) = AskOptions (go . f)
 
 
--- | Marks all tests in the give test as expected failures: The tests will
+-- | Marks all tests in the given test as expected failures: The tests will
 -- still be run, but if they succeed, it is reported as a test suite failure,
 -- and conversely a failure of the test is ignored.
 --
@@ -54,6 +59,31 @@ expectFail = wrapTest (fmap change)
         = r { resultOutcome = Success
             , resultDescription = resultDescription r `append` "(expected failure)"
             , resultShortDescription = "FAIL (expected)"
+            }
+    "" `append` s = s
+    t  `append` s | last t == '\n' = t ++ s ++ "\n"
+                  | otherwise      = t ++ "\n" ++ s
+
+-- | Marks all tests in the given test as allowed failures or successes:
+-- The tests will still be run and always succeed, but the outputs are
+-- reported as either allowed failure or allowed success.
+--
+-- This is useful when you have a 'TestTree' where some leaves are allowed
+-- to fail. If you need the tests to fail when a failure is expected use
+-- 'expectFail'.
+allowFail :: TestTree -> TestTree
+allowFail = wrapTest (fmap change)
+  where
+    change r
+        | resultSuccessful r
+        = r { resultOutcome = Success
+            , resultDescription = resultDescription r `append` "(allowed success)"
+            , resultShortDescription = "PASS (allowed)"
+            }
+        | otherwise
+        = r { resultOutcome = Success
+            , resultDescription = resultDescription r `append` "(allowed failure)"
+            , resultShortDescription = "FAIL (allowed)"
             }
     "" `append` s = s
     t  `append` s | last t == '\n' = t ++ s ++ "\n"
