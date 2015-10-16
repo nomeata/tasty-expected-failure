@@ -1,5 +1,5 @@
 name:                tasty-expected-failure
-version:             0.11.0.1
+version:             0.11.0.2
 synopsis:            Mark tasty tests as failure expected
 description:
  With the function 'Test.Tasty.ExpectedFailure.expectFail' in the provided module

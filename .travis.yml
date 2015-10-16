@@ -85,4 +85,10 @@ script:
  - SRC_TGZ=$(cabal info . | awk '{print $2;exit}').tar.gz &&
    (cd dist && cabal install --force-reinstalls "$SRC_TGZ")
 
-# EOF
+deploy:
+  provider: hackage
+  on:
+   tags: true
+  username: "JoachimBreitner"
+  password:
+    secure: "jnTUMxGxLIBZChdn1AEF1/leSpzYA1u2Eos5ale+r1imkzkdKsEzZyd4lk/v1I5VIYXp7dDv+iM8E2KI5K4voyUGmrrhEiebsrxt0SMSPvyakE3ofpm/SbuOXHPgi6OCw2eF15LtcMArUd9CTKpAm+p+mfEtnDwiGU2HejS5YrislhZcpeq8unqyD51Q03hMlV9FoGCfyPmQJjTQDZPOFoN7ya5it2OKnfZFVthzgILf3zbsudcoJr60PI/CXN20xtlKcRFVWJ9xnELvhXCH89LmOIXDKonny7xksFBrI3bIldkbn/aZp3x4mbSggd+iugut/+V8TeMkm45MYRRC7NunsMN/UsBrQuAvLIVPVCxFkOJLmjkG6593V17Q5og+ibbrlVqfa1pObKi2tW2P3B0p6STQODVGOevP2F3y4PLuVqr8B3dUekEhvRRPdstlEHvioX9jhy1UWWDv167XP4qEIY4NH6trd/bRr5uCkA+o6ezMdX/MRxYtuvIQEmurSPxdeaMmv//L+gOep4Wj0Dx9qpcZpAUXh2kfSUsC6Oxe7wHjl23EPUNyMRNNH5OcCp/s8Sw+feQOhpjJcDx8YQdx2LVPP9MW1i00NB1kPbTulTxsHsuL5MkjSb+Q+mtv/uW5dJVr0x3eIQGvnkhm0CmWsdVja2Nm1D2xM0k9vOE="
