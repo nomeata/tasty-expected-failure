@@ -16,7 +16,7 @@ description:
  .
  The module also provides 'Test.Tasty.ExpectedFailure.ignoreTest' to avoid
  running a test. Both funtions are implemented via the more general
- 'Test.Tasty.ExpectedFailure.warpTest', which is also provided.
+ 'Test.Tasty.ExpectedFailure.wrapTest', which is also provided.
 homepage: http://github.com/nomeata/tasty-expected-failure
 license:             MIT
 license-file:        LICENSE

@@ -18,7 +18,7 @@ can remove the `expectFail` marker.
 
 The module also provides `ignoreTest` to avoid
 running a test. Both funtions are implemented via the more general
-`warpTest`, which is also provided.
+`wrapTest`, which is also provided.
 
 Why is this not provided by tasty?
 ----------------------------------
