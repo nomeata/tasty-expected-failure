@@ -6,6 +6,7 @@ import Test.Tasty.Runners
 import Test.Tasty.Providers
 import Data.Typeable
 import Data.Tagged
+import Control.Exception(SomeException, catch)
 
 data WrappedTest t = WrappedTest (IO Result -> IO Result) t
     deriving Typeable
@@ -42,7 +43,7 @@ wrapTest wrap = go
 -- accidentially), the test suite will remind you to remove the 'expectFail'
 -- marker.
 expectFail :: TestTree -> TestTree
-expectFail = wrapTest (fmap change)
+expectFail = wrapTest (fmap change . (`catch` (return . exceptionResult)))
   where
     change r
         | resultSuccessful r
@@ -58,6 +59,16 @@ expectFail = wrapTest (fmap change)
     "" `append` s = s
     t  `append` s | last t == '\n' = t ++ s ++ "\n"
                   | otherwise      = t ++ "\n" ++ s
+
+-- Copied from Test.Tasty.Core
+-- | Shortcut for creating a 'Result' that indicates exception
+exceptionResult :: SomeException -> Result
+exceptionResult e = Result
+  { resultOutcome = Failure $ TestThrewException e
+  , resultDescription = "Exception: " ++ show e
+  , resultShortDescription = "FAIL"
+  , resultTime = 0
+  }
 
 
 -- | Prevents the tests from running and reports them as succeeding. This maybe
