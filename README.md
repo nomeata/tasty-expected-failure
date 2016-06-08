@@ -33,7 +33,7 @@ include these 39 lines of code in tasty. See the
 Instead I wrote 37 lines of cabal file, a similar number of lines of README,
 created a git repository, created a travis file, run travis to figure out on
 what versions it builds (something that would have happened automatically with
-a pull request for tasty), upload to hackge, add to stackage.
+a pull request for tasty), upload to hackage, add to stackage.
 
 Furthermore, there is little discoverability: If it were part of the tasty API,
 users would stumble over it. Now they likely won’t. And if they do, they have
