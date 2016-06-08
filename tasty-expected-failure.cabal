@@ -1,5 +1,5 @@
 name:                tasty-expected-failure
-version:             0.11.0.3
+version:             0.11.0.4
 synopsis:            Mark tasty tests as failure expected
 description:
  With the function 'Test.Tasty.ExpectedFailure.expectFail' in the provided module
@@ -27,13 +27,13 @@ category:            Testing
 build-type:          Simple
 extra-source-files:  README.md
 cabal-version:       >=1.10
-tested-with: GHC == 7.4.2, GHC == 7.6.3, GHC == 7.8.4, GHC == 7.10.2, GHC == 7.11.*
+tested-with: GHC == 7.4.2, GHC == 7.6.3, GHC == 7.8.4, GHC == 7.10.2, GHC == 7.11.*, GHC == 8.0.*
 
 library
   exposed-modules:
     Test.Tasty.ExpectedFailure
   build-depends:
-    base >= 4.5 && <4.9,
+    base >= 4.5 && <4.10,
     tagged >= 0.7 && < 0.9,
     tasty >= 0.11
   default-language:    Haskell2010
