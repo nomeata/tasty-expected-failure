@@ -62,9 +62,18 @@ expectFail = wrapTest (fmap change)
 
 -- | Prevents the tests from running and reports them as succeeding.
 --
--- This maybe be desireable as an alternative to commenting out the tests. This
+-- This may be be desireable as an alternative to commenting out the tests. This
 -- way, they are still typechecked (preventing bitrot), and the test report
 -- lists them, which serves as a reminder that there are ignored tests.
+--
+-- Note that any setup/teardown actions executed by 'Test.Tasty.withResource'
+-- are still executed. You can bypass this manually as in the following example:
+--
+-- @
+-- askOption $ \\(MyFlag b) -> if b
+--                            then withResource mytest
+--                            else ignoreTest . mytest $ return junkvalue
+-- @
 ignoreTest :: TestTree -> TestTree
 ignoreTest = wrapTest $ const $ return $
     (testPassed "") { resultShortDescription = "IGNORED" }
