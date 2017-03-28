@@ -60,10 +60,11 @@ expectFail = wrapTest (fmap change)
                   | otherwise      = t ++ "\n" ++ s
 
 
--- | Prevents the tests from running and reports them as succeeding. This maybe
--- be desireable as an alternative comment the tests out, as they are still
--- typechecked, and the test report lists them, as a reminder that there are
--- ignored test.
+-- | Prevents the tests from running and reports them as succeeding.
+--
+-- This maybe be desireable as an alternative to commenting out the tests. This
+-- way, they are still typechecked (preventing bitrot), and the test report
+-- lists them, which serves as a reminder that there are ignored tests.
 ignoreTest :: TestTree -> TestTree
 ignoreTest = wrapTest $ const $ return $
     (testPassed "") { resultShortDescription = "IGNORED" }
