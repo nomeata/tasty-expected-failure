@@ -1,11 +1,13 @@
 {-# LANGUAGE DeriveDataTypeable, ScopedTypeVariables #-}
-module Test.Tasty.ExpectedFailure (expectFail, ignoreTest, wrapTest) where
+module Test.Tasty.ExpectedFailure (expectFail, expectFailBecause, ignoreTest, ignoreTestBecause, wrapTest) where
 
 import Test.Tasty.Options
 import Test.Tasty.Runners
 import Test.Tasty.Providers
 import Data.Typeable
 import Data.Tagged
+import Data.Maybe
+import Data.Monoid
 
 data WrappedTest t = WrappedTest (IO Result -> IO Result) t
     deriving Typeable
@@ -14,7 +16,7 @@ instance forall t. IsTest t => IsTest (WrappedTest t) where
     run opts (WrappedTest wrap t) prog = wrap (run opts t prog)
     testOptions = retag (testOptions :: Tagged t [OptionDescription])
 
--- | 'wrapTest' allows you to modify the behavoiur of the tests, e.g. by
+-- | 'wrapTest' allows you to modify the behaviour of the tests, e.g. by
 -- modifying the result or not running the test at all. It is used to implement
 -- 'expectFail' and 'ignoreTest'.
 wrapTest :: (IO Result -> IO Result) -> TestTree -> TestTree
@@ -42,23 +44,30 @@ wrapTest wrap = go
 -- accidentially), the test suite will remind you to remove the 'expectFail'
 -- marker.
 expectFail :: TestTree -> TestTree
-expectFail = wrapTest (fmap change)
+expectFail = expectFail' Nothing
+
+-- | Like 'expectFail' but with additional comment
+expectFailBecause :: String -> TestTree -> TestTree
+expectFailBecause reason = expectFail' (Just reason)
+
+expectFail' :: Maybe String -> TestTree -> TestTree
+expectFail' reason = wrapTest (fmap change)
   where
     change r
         | resultSuccessful r
         = r { resultOutcome = Failure TestFailed
-            , resultDescription = resultDescription r `append` "(unexpected success)"
-            , resultShortDescription = "PASS (unexpected)"
+            , resultDescription = resultDescription r <> "(unexpected success" <> comment <> ")"
+            , resultShortDescription = "PASS (unexpected" <> comment <> ")"
             }
         | otherwise
         = r { resultOutcome = Success
-            , resultDescription = resultDescription r `append` "(expected failure)"
-            , resultShortDescription = "FAIL (expected)"
+            , resultDescription = resultDescription r <> "(expected failure)"
+            , resultShortDescription = "FAIL (expected" <> comment <> ")"
             }
     "" `append` s = s
     t  `append` s | last t == '\n' = t ++ s ++ "\n"
                   | otherwise      = t ++ "\n" ++ s
-
+    comment = maybe "" (mappend ": ") reason
 
 -- | Prevents the tests from running and reports them as succeeding.
 --
@@ -75,5 +84,14 @@ expectFail = wrapTest (fmap change)
 --                            else ignoreTest . mytest $ return junkvalue
 -- @
 ignoreTest :: TestTree -> TestTree
-ignoreTest = wrapTest $ const $ return $
-    (testPassed "") { resultShortDescription = "IGNORED" }
+ignoreTest = ignoreTest' Nothing
+
+-- | Like 'ignoreTest' but with additional comment
+ignoreTestBecause :: String -> TestTree -> TestTree
+ignoreTestBecause reason = ignoreTest' (Just reason)
+
+ignoreTest' :: Maybe String -> TestTree -> TestTree
+ignoreTest' reason = wrapTest $ const $ return $
+    (testPassed "") {
+      resultShortDescription = "IGNORED" <> maybe "" (mappend ": ") reason
+    }
