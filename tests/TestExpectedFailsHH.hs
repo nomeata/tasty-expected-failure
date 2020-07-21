@@ -1,3 +1,5 @@
+import           Control.Concurrent ( threadDelay )
+import           Control.Monad.IO.Class ( liftIO )
 import           Hedgehog
 import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Range as Range
@@ -11,7 +13,9 @@ import           Test.Tasty.Hedgehog
 -- that "PASS (unexpected)" is rendered in Red and "FAIL (expected)"
 -- is rendered in Green.
 
-main = defaultMain $ testGroup "Expected Hedgehog Failures" $
+main = defaultMain $
+  localOption (mkTimeout 1000000) $  -- 1s
+  testGroup "Expected Hedgehog Failures" $
   [ testProperty "good" $ property $ success
   , expectFail $ testProperty "rarely good" $ property $ do
       xs <- forAll $ Gen.list (Range.linear 0 10) Gen.alpha
@@ -25,4 +29,12 @@ main = defaultMain $ testGroup "Expected Hedgehog Failures" $
 
   , expectFail $ expectFail $ testProperty "the failure of a failure is my good" $
     property $ success
+
+  , expectFail $ testProperty "throws failure" $
+    property $ fail "bad"
+
+  , expectFail $ testProperty "too slow" $
+    property $ do
+      liftIO $ threadDelay 2000000
+      success
   ]
