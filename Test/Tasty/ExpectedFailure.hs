@@ -56,13 +56,13 @@ expectFail' reason = wrapTest (fmap change)
     change r
         | resultSuccessful r
         = r { resultOutcome = Failure TestFailed
-            , resultDescription = resultDescription r <> "(unexpected success" <> comment <> ")"
-            , resultShortDescription = "PASS (unexpected" <> comment <> ")"
+            , resultDescription = resultDescription r <> " (unexpected success" <> comment <> ")"
+            , resultShortDescription = resultShortDescription r <> " (unexpected" <> comment <> ")"
             }
         | otherwise
         = r { resultOutcome = Success
-            , resultDescription = resultDescription r <> "(expected failure)"
-            , resultShortDescription = "FAIL (expected" <> comment <> ")"
+            , resultDescription = resultDescription r <> " (expected failure)"
+            , resultShortDescription = resultShortDescription r <> " (expected" <> comment <> ")"
             }
     "" `append` s = s
     t  `append` s | last t == '\n' = t ++ s ++ "\n"
