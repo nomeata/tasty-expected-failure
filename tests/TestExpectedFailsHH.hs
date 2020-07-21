@@ -23,7 +23,7 @@ main = defaultMain $
 
   -- n.b. uncomment this to observe the results of a test that was
   -- expected to fail but actually passes.
-  -- , expectFail $ testProperty "surprisingly good" $ property $ failure
+  -- , expectFail $ testProperty "surprisingly good" $ property $ success
 
   , expectFail $ testProperty "giving up" $ property $ discard
 
