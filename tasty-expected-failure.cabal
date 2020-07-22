@@ -52,6 +52,7 @@ test-suite expected-fail-tests
   build-depends:       base,
                        tasty,
                        tasty-hunit,
+                       tasty-golden,
                        tasty-expected-failure
 
 

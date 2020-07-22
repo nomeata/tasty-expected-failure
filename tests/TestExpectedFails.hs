@@ -1,6 +1,7 @@
 import Control.Concurrent (threadDelay)
 import Test.Tasty
 import Test.Tasty.ExpectedFailure
+import Test.Tasty.Golden
 import Test.Tasty.HUnit
 
 -- n.b. running via `cabal v2-test` outputs plaintext, but running via
@@ -21,6 +22,9 @@ main = defaultMain $
   , expectFail $ expectFail $ testCase "two wrongs make a right" $ 1 + 1 @=? 2
 
   , expectFail $ testCase "throws failure" $ fail "bad"
+  , expectFail $ testCase "throws error" $ error "also bad"
 
   , expectFail $ testCase "takes too long" $ threadDelay 2000000
+
+  , expectFail $ goldenVsString "hello" "hello.out" $ return $ error "not golden"
   ]
