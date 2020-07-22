@@ -18,7 +18,12 @@ data WrappedTest t = WrappedTest (IO Result -> IO Result) t
 
 instance forall t. IsTest t => IsTest (WrappedTest t) where
     run opts (WrappedTest wrap t) prog =
-      -- re-implement timeouts and exception handling *inside* the wrapper
+      -- Re-implement timeouts and exception handling *inside* the
+      -- wrapper.  The primary location for timeout and exception
+      -- handling is in `executeTest` in the Tasty module's
+      -- Test.Tasty.Run implementation, but that handling is above the
+      -- level of this wrapper which therefore cannot absorb timeouts
+      -- and exceptions as *expected* failures.
       let (pre,post) = case lookupOption opts of
                          NoTimeout -> (fmap Just, fromJust)
                          Timeout t s -> (timeout (faster t), fromMaybe (timeoutResult t s))
