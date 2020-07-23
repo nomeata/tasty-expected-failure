@@ -1,19 +1,58 @@
-{-# LANGUAGE DeriveDataTypeable, ScopedTypeVariables #-}
+{-# LANGUAGE DeriveDataTypeable, ScopedTypeVariables, LambdaCase #-}
 module Test.Tasty.ExpectedFailure (expectFail, expectFailBecause, ignoreTest, ignoreTestBecause, wrapTest) where
 
 import Test.Tasty.Options
 import Test.Tasty.Runners
 import Test.Tasty.Providers
+import Test.Tasty ( Timeout(..) )
 import Data.Typeable
 import Data.Tagged
 import Data.Maybe
 import Data.Monoid
+import Control.Exception ( displayException, try, SomeException )
+import Control.Concurrent.Timeout ( timeout )
+
 
 data WrappedTest t = WrappedTest (IO Result -> IO Result) t
     deriving Typeable
 
 instance forall t. IsTest t => IsTest (WrappedTest t) where
-    run opts (WrappedTest wrap t) prog = wrap (run opts t prog)
+    run opts (WrappedTest wrap t) prog =
+      -- Re-implement timeouts and exception handling *inside* the
+      -- wrapper.  The primary location for timeout and exception
+      -- handling is in `executeTest` in the Tasty module's
+      -- Test.Tasty.Run implementation, but that handling is above the
+      -- level of this wrapper which therefore cannot absorb timeouts
+      -- and exceptions as *expected* failures.
+      let (pre,post) = case lookupOption opts of
+                         NoTimeout -> (fmap Just, fromJust)
+                         Timeout t s -> (timeout (faster t), fromMaybe (timeoutResult t s))
+          -- 'faster' has to shorten the user-specified timeout by a
+          -- small amount because the main Timeout option is
+          -- separately passed to `executeTest` and that one will
+          -- usually fire first if both have the same timeout.  This
+          -- is a really kludgy hack, but the assumption is that most
+          -- test timeouts have low resolution, so making the timeout
+          -- slightly faster isn't significant in the overall sense.
+          -- If it is, the test writer will hopefully find this
+          -- comment, increase their timeout specification
+          -- accordingly, and not curse us too heavily.
+          faster t = t - 2000 -- must specify a timeout period that will *fire* faster than the original
+          timeoutResult t s =
+            Result { resultOutcome = Failure $ TestTimedOut t
+                   , resultDescription = "Timed out after " <> s
+                   , resultShortDescription = "TIMEOUT"
+                   , resultTime = fromIntegral t
+                   }
+          exceptionResult e =
+            Result { resultOutcome = Failure $ TestThrewException e
+                   , resultDescription = "Exception: " ++ displayException e
+                   , resultShortDescription = "FAIL"
+                   , resultTime = 0
+                   }
+      in wrap $ try (pre $ run opts t prog) >>= \case
+        Right r -> return (post r)
+        Left (e :: SomeException) -> return $ exceptionResult e
     testOptions = retag (testOptions :: Tagged t [OptionDescription])
 
 -- | 'wrapTest' allows you to modify the behaviour of the tests, e.g. by
@@ -56,13 +95,13 @@ expectFail' reason = wrapTest (fmap change)
     change r
         | resultSuccessful r
         = r { resultOutcome = Failure TestFailed
-            , resultDescription = resultDescription r <> "(unexpected success" <> comment <> ")"
-            , resultShortDescription = "PASS (unexpected" <> comment <> ")"
+            , resultDescription = resultDescription r <> " (unexpected success" <> comment <> ")"
+            , resultShortDescription = resultShortDescription r <> " (unexpected" <> comment <> ")"
             }
         | otherwise
         = r { resultOutcome = Success
-            , resultDescription = resultDescription r <> "(expected failure)"
-            , resultShortDescription = "FAIL (expected" <> comment <> ")"
+            , resultDescription = resultDescription r <> " (expected failure)"
+            , resultShortDescription = resultShortDescription r <> " (expected" <> comment <> ")"
             }
     "" `append` s = s
     t  `append` s | last t == '\n' = t ++ s ++ "\n"
