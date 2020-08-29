@@ -1,9 +1,13 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveDataTypeable, ScopedTypeVariables, LambdaCase #-}
 module Test.Tasty.ExpectedFailure (expectFail, expectFailBecause, ignoreTest, ignoreTestBecause, wrapTest) where
 
 import Test.Tasty.Options
 import Test.Tasty.Runners
 import Test.Tasty.Providers
+#if MIN_VERSION_tasty(1,3,1)
+import Test.Tasty.Providers.ConsoleFormat ( ResultDetailsPrinter(..) )
+#endif
 import Test.Tasty ( Timeout(..) )
 import Data.Typeable
 import Data.Tagged
@@ -43,12 +47,18 @@ instance forall t. IsTest t => IsTest (WrappedTest t) where
                    , resultDescription = "Timed out after " <> s
                    , resultShortDescription = "TIMEOUT"
                    , resultTime = fromIntegral t
+#if MIN_VERSION_tasty(1,3,1)
+                   , resultDetailsPrinter = ResultDetailsPrinter . const . const $ return ()
+#endif
                    }
           exceptionResult e =
             Result { resultOutcome = Failure $ TestThrewException e
                    , resultDescription = "Exception: " ++ displayException e
                    , resultShortDescription = "FAIL"
                    , resultTime = 0
+#if MIN_VERSION_tasty(1,3,1)
+                   , resultDetailsPrinter = ResultDetailsPrinter . const . const $ return ()
+#endif
                    }
       in wrap $ try (pre $ run opts t prog) >>= \case
         Right r -> return (post r)
