@@ -141,6 +141,6 @@ ignoreTestBecause reason = ignoreTest' (Just reason)
 
 ignoreTest' :: Maybe String -> TestTree -> TestTree
 ignoreTest' reason = wrapTest $ const $ return $
-    (testPassed "") {
-      resultShortDescription = "IGNORED" <> maybe "" (mappend ": ") reason
+    (testPassed $ fromMaybe "" reason) {
+      resultShortDescription = "IGNORED"
     }
