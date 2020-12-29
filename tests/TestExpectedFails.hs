@@ -27,4 +27,24 @@ main = defaultMain $
   , expectFail $ testCase "takes too long" $ threadDelay 2000000
 
   , expectFail $ goldenVsString "hello" "hello.out" $ return $ error "not golden"
+
+  -- Issue 24
+  , expectFail $ testCase "this is expected to fail"
+    (mrtOne (someFunc "Hello, world!") @?= "")
+
+   , expectFail $ testCase "this is also expected to fail"
+     (someFunc "Hello, world!" @?= MyResultType { mrtOne = "", mrtTwo = "" })
   ]
+
+
+data MyResultType = MyResultType { mrtOne :: String
+                                 , mrtTwo :: String
+                                 }
+                    deriving (Eq, Show)
+
+someFunc :: String -> MyResultType
+someFunc fp = MyResultType
+              {
+                mrtOne = fp
+              , mrtTwo = undefined
+              }
