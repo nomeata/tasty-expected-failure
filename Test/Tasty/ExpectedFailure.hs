@@ -113,7 +113,7 @@ wrapTest wrap = go
     go (AskOptions f) = AskOptions (go . f)
 
 
--- | Marks all tests in the give test as expected failures: The tests will
+-- | Marks all tests in the given test suite as expected failures: The tests will
 -- still be run, but if they succeed, it is reported as a test suite failure,
 -- and conversely a the failure of the test is ignored.
 --
