@@ -13,7 +13,7 @@ import Data.Typeable
 import Data.Tagged
 import Data.Maybe
 import Data.Monoid
-import Control.Exception ( displayException, try, SomeException )
+import Control.Exception ( displayException, evaluate, try, SomeException )
 import Control.Concurrent.Timeout ( timeout )
 
 
@@ -60,10 +60,45 @@ instance forall t. IsTest t => IsTest (WrappedTest t) where
                    , resultDetailsPrinter = ResultDetailsPrinter . const . const $ return ()
 #endif
                    }
-      in wrap $ try (pre $ run opts t prog) >>= \case
-        Right r -> return (post r)
-        Left (e :: SomeException) -> return $ exceptionResult e
+          forceList = foldr seq ()
+      in wrap $ try (pre (run opts t prog
+                         -- Ensure exceptions trying to show the
+                         -- failure result are caught as "expected"
+                         -- (see Issue #24 and note below)
+                         >>= \r -> evaluate (forceList (resultDescription r) `seq`
+                                             forceList (resultShortDescription r) `seq`
+                                             resultOutcome r `seq`
+                                             r)))
+         >>= \case
+               Right r -> return (post r)
+               Left (e :: SomeException) -> return $ exceptionResult e
     testOptions = retag (testOptions :: Tagged t [OptionDescription])
+
+    -- Note regarding post-run evaluate above:
+    --
+    -- The normal behavior of tasty-expected-failure is to run the
+    -- test, show the failure result, but then note that the failure
+    -- is expected and not count that against a test failure.  If the
+    -- test unexpectedly succeeds, a message to that effect is
+    -- printed, but there is no resultDescription display of the test
+    -- inputs.
+    --
+    -- As of Tasty 1.4, the core tasty code was enhanced to fix issue
+    -- #280 in tasty: essentially the test result report is forced.
+    -- However, when used with tests expected to fail that also throw
+    -- exceptions when attempting to show the result, the forcing in
+    -- Tasty 1.4 causes an exception to be thrown after the
+    -- tasty-expected-failure protections but still within the realm
+    -- where tasty would count it as a failure.  The fix here attempts
+    -- to `show` the failing value here in tasty-expected-failure; if
+    -- an exception occurs during that `show` then code here will
+    -- report it (somewhat incorrectly) via the exceptionResult above,
+    -- where tasty's subsequent forcing of the text of that
+    -- exceptionResult no longer causes an exception *there*.  Since
+    -- the value is only shown if there was already a failure, the
+    -- reason is misleading but the outcome is consistent with the
+    -- intent of tasty-expected-failure handling.
+
 
 -- | 'wrapTest' allows you to modify the behaviour of the tests, e.g. by
 -- modifying the result or not running the test at all. It is used to implement
@@ -78,7 +113,7 @@ wrapTest wrap = go
     go (AskOptions f) = AskOptions (go . f)
 
 
--- | Marks all tests in the give test as expected failures: The tests will
+-- | Marks all tests in the given test suite as expected failures: The tests will
 -- still be run, but if they succeed, it is reported as a test suite failure,
 -- and conversely a the failure of the test is ignored.
 --
@@ -141,6 +176,6 @@ ignoreTestBecause reason = ignoreTest' (Just reason)
 
 ignoreTest' :: Maybe String -> TestTree -> TestTree
 ignoreTest' reason = wrapTest $ const $ return $
-    (testPassed "") {
-      resultShortDescription = "IGNORED" <> maybe "" (mappend ": ") reason
+    (testPassed $ fromMaybe "" reason) {
+      resultShortDescription = "IGNORED"
     }
