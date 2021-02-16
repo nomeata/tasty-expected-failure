@@ -8,7 +8,7 @@ import Test.Tasty.Providers
 #if MIN_VERSION_tasty(1,3,1)
 import Test.Tasty.Providers.ConsoleFormat ( ResultDetailsPrinter(..) )
 #endif
-import Test.Tasty ( Timeout(..) )
+import Test.Tasty ( Timeout(..), askOption, localOption )
 import Data.Typeable
 import Data.Tagged
 import Data.Maybe
@@ -17,31 +17,20 @@ import Control.Exception ( displayException, evaluate, try, SomeException )
 import Control.Concurrent.Timeout ( timeout )
 
 
-data WrappedTest t = WrappedTest (IO Result -> IO Result) t
+data WrappedTest t = WrappedTest Timeout (IO Result -> IO Result) t
     deriving Typeable
 
 instance forall t. IsTest t => IsTest (WrappedTest t) where
-    run opts (WrappedTest wrap t) prog =
+    run opts (WrappedTest tmout wrap t) prog =
       -- Re-implement timeouts and exception handling *inside* the
       -- wrapper.  The primary location for timeout and exception
       -- handling is in `executeTest` in the Tasty module's
       -- Test.Tasty.Run implementation, but that handling is above the
       -- level of this wrapper which therefore cannot absorb timeouts
       -- and exceptions as *expected* failures.
-      let (pre,post) = case lookupOption opts of
+      let (pre,post) = case tmout of
                          NoTimeout -> (fmap Just, fromJust)
-                         Timeout t s -> (timeout (faster t), fromMaybe (timeoutResult t s))
-          -- 'faster' has to shorten the user-specified timeout by a
-          -- small amount because the main Timeout option is
-          -- separately passed to `executeTest` and that one will
-          -- usually fire first if both have the same timeout.  This
-          -- is a really kludgy hack, but the assumption is that most
-          -- test timeouts have low resolution, so making the timeout
-          -- slightly faster isn't significant in the overall sense.
-          -- If it is, the test writer will hopefully find this
-          -- comment, increase their timeout specification
-          -- accordingly, and not curse us too heavily.
-          faster t = t - 2000 -- must specify a timeout period that will *fire* faster than the original
+                         Timeout t s -> (timeout t, fromMaybe (timeoutResult t s))
           timeoutResult t s =
             Result { resultOutcome = Failure $ TestTimedOut t
                    , resultDescription = "Timed out after " <> s
@@ -106,7 +95,10 @@ instance forall t. IsTest t => IsTest (WrappedTest t) where
 wrapTest :: (IO Result -> IO Result) -> TestTree -> TestTree
 wrapTest wrap = go
   where
-    go (SingleTest n t) = SingleTest n (WrappedTest wrap t)
+    go (SingleTest n t) =
+      askOption $ \(old_timeout :: Timeout) ->
+      localOption NoTimeout $  -- disable Tasty's timeout; handled here instead
+      SingleTest n (WrappedTest old_timeout wrap t)
     go (TestGroup name tests) = TestGroup name (map go tests)
     go (PlusTestOptions plus tree) = PlusTestOptions plus (go tree)
     go (WithResource spec gentree) = WithResource spec (go . gentree)
